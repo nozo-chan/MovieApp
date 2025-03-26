@@ -31,6 +31,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -108,7 +109,7 @@ fun SeatReservationTopBar(
 @Composable
 fun SeatReservationScreen(viewModel: SeatViewModel) {
     var groupSize by remember { mutableStateOf(1) }
-    val seats by viewModel.seats.collectAsState()
+    val seats by viewModel.seats.collectAsState(emptyList())
     val selectedSeats by viewModel.selectedSeats.collectAsState()
 
     Scaffold(
@@ -136,6 +137,7 @@ fun SeatReservationScreen(viewModel: SeatViewModel) {
 
                     // Reserve Seats Button
                     Button(
+                        //onClick = {},
                         onClick = { viewModel.reserveSelectedSeats() },
                         enabled = selectedSeats.isNotEmpty()
                     ) {
@@ -144,6 +146,7 @@ fun SeatReservationScreen(viewModel: SeatViewModel) {
 
                     // Clear Selection Button
                     Button(
+                        //onClick = {},
                         onClick = { viewModel.clearSelectedSeats() },
                         enabled = selectedSeats.isNotEmpty()
                     ) {
@@ -152,6 +155,7 @@ fun SeatReservationScreen(viewModel: SeatViewModel) {
 
                     // Clear Selection Button
                     Button(
+                       // onClick = {},
                         onClick = { viewModel.clear(numPeople = groupSize) },
                         enabled = selectedSeats.isNotEmpty()
                     ) {
@@ -163,6 +167,7 @@ fun SeatReservationScreen(viewModel: SeatViewModel) {
     ) { paddingValues ->
         Box(modifier = Modifier.padding(paddingValues)) {
             Column {
+
                 // Seat Selection Status
                 Text(
                     text = "Selected Seats: ${selectedSeats.size}",

@@ -1,20 +1,22 @@
 package com.example.movieapp
 
+import com.example.movieapp.database.SeatDao
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.launch
 import kotlin.random.Random
 
-class SeatRepository(private val rows: Int, private val cols: Int) {
+class SeatRepository(
+    private val seatDao: SeatDao
+) {
 
-    private val _seats = MutableStateFlow(
-        List(rows) { row ->
-            List(cols) { col -> Seat(row, col, Random.nextBoolean()) }
-        }
-    )
-    private val seats: StateFlow<List<List<Seat>>> get() = _seats
+    // Using StateFlow to hold and emit seat list state
+    private val _seats = MutableStateFlow<List<List<Seat>>>(emptyList())
+    val seats: StateFlow<List<List<Seat>>> = _seats
 
-    // Function to retrieve the current seats list
-    fun getSeats(): List<List<Seat>> = _seats.value
+
 
     // Function to reserve a list of seats based on given positions (row, col)
     private fun reserveSeats(seatPositions: List<Pair<Int, Int>>) {
@@ -25,6 +27,9 @@ class SeatRepository(private val rows: Int, private val cols: Int) {
                     ?: seat
             }
         }
+//        CoroutineScope(Dispatchers.IO).launch {
+//            reserveSeatsdb(seatPositions)
+//        }
     }
 
     // Main function to find and reserve seats
@@ -35,6 +40,8 @@ class SeatRepository(private val rows: Int, private val cols: Int) {
         selectedSeats?.let {
             val assignedSeats = reserveUserSelectedSeats(it)
             if (assignedSeats.size == numPeople) return assignedSeats
+            ///CoroutineScope(Dispatchers.IO).launch { reserveSeatsdb(selectedSeats) }
+
         }
         return findSeatsForGroup(numPeople).takeIf { it.isNotEmpty() }
             ?: assignSeparateSeats(numPeople)
@@ -51,6 +58,8 @@ class SeatRepository(private val rows: Int, private val cols: Int) {
         }
         _seats.value = updatedSeats  // Update the StateFlow with new seat list
         reserveSeats(selectedSeats)
+        //CoroutineScope(Dispatchers.IO).launch { reserveSeatsdb(selectedSeats) }
+
         return selectedSeats.filter { (row, col) ->
             updatedSeats[row][col].isOccupied
         }
@@ -84,7 +93,38 @@ class SeatRepository(private val rows: Int, private val cols: Int) {
             }
         }
         _seats.value = updatedSeats // Update StateFlow
+
         return availableSeats.map { it.row to it.col }
+    }
+
+
+
+    // Function to retrieve the current seats list
+    fun getSeats(): List<List<Seat>> = _seats.value
+
+    suspend fun fetchSeats() {
+        val seatsFromDb = seatDao.getAllSeats() // Fetch from database
+        _seats.value = seatsFromDb.chunked(10) // Assuming 10 seats per row
+    }
+
+    suspend fun insertSeats(seats: List<Seat>){
+       seatDao.insertSeats(seats)
+        fetchSeats()
+
+    }
+
+    // Reserve seats based on row, col positions
+    private suspend fun reserveSeatsdb(seatPositions: List<Pair<Int, Int>>) {
+        seatPositions.forEach { (row, col) ->
+            seatDao.reserveSeat(row, col) // Reserve in DB
+        }
+        fetchSeats()  // After reserving, fetch the updated seats from DB
+    }
+
+    // Update seats in the database
+    suspend fun updateSeats(seats: List<Seat>) {
+        seatDao.updateSeats(seats) // Update DB with new seat statuses
+        fetchSeats()  // After updating, fetch the updated seats
     }
 }
 

@@ -12,19 +12,22 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
+import com.example.movieapp.database.SeatDao
+import com.example.movieapp.database.SeatDatabase.Companion.getDatabase
 import com.example.movieapp.ui.theme.MovieAppTheme
 
 class MainActivity : ComponentActivity() {
 
+    protected fun application(): CinemaApp = application as CinemaApp
+
     private val seatViewModel: SeatViewModel by viewModels { seatViewModelFactory }
 
     private val seatViewModelFactory: SeatViewModelFactory
-        get() = SeatViewModelFactory(repository)
-
-    private val repository = SeatRepository(rows = 20, cols = 8)
+        get() = SeatViewModelFactory(application().repository)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
         enableEdgeToEdge()
         setContent {
             MovieAppTheme {
