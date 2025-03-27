@@ -4,12 +4,11 @@ import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
-import com.example.movieapp.Seat
+import com.example.movieapp.database.Seat
 
 @Database(entities = [Seat::class], version = 1)
 abstract class SeatDatabase : RoomDatabase() {
     abstract fun seatDao(): SeatDao
-
 
     companion object {
         @Volatile
@@ -23,9 +22,7 @@ abstract class SeatDatabase : RoomDatabase() {
                     context.applicationContext,
                     SeatDatabase::class.java,
                     "seat_database"
-                )  .allowMainThreadQueries()
-                    .build()
-
+                ).build()
                 INSTANCE = instance
                 instance
             }

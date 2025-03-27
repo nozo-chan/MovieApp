@@ -1,5 +1,6 @@
-package com.example.movieapp
+package com.example.movieapp.ui.viewmodel
 
+import com.example.movieapp.repository.SeatRepository
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 

@@ -1,9 +1,9 @@
 package com.example.movieapp
 
+import com.example.movieapp.repository.SeatRepository
 import android.app.Application
 
 import com.example.movieapp.database.SeatDao
-import com.example.movieapp.database.SeatDatabase
 import com.example.movieapp.database.SeatDatabase.Companion.getDatabase
 
 class CinemaApp: Application() {
@@ -13,7 +13,7 @@ class CinemaApp: Application() {
     override fun onCreate() {
         super.onCreate()
       dao = getDatabase(context =applicationContext).seatDao()
-        repository = SeatRepository( dao)
+        repository = SeatRepository(cols = 10, rows = 10, dao = dao)
 
     }
 }

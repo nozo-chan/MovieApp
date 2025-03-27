@@ -1,8 +1,7 @@
-package com.example.movieapp
+package com.example.movieapp.database
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
-
 
 @Entity(tableName = "seats")
 data class Seat(
