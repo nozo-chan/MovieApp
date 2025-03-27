@@ -9,6 +9,6 @@ data class Seat(
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
     val row: Int,
     val col: Int,
-    var isOccupied: Boolean,
+    var isOccupied: Boolean = false,
     val isReserved: Boolean = false
 )

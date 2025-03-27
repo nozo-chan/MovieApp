@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Transaction
 import androidx.room.Update
 import com.example.movieapp.Seat
 import kotlinx.coroutines.flow.Flow
@@ -27,4 +28,11 @@ interface SeatDao {
 
     @Query("UPDATE seats SET isOccupied = 0 WHERE row = :row AND col = :col")
     suspend fun unreserveSeat(row: Int, col: Int)
+
+    @Transaction
+    suspend fun reserveSeats(seatPositions: List<Pair<Int, Int>>) {
+        seatPositions.forEach { (row, col) ->
+            reserveSeat(row, col)
+        }
+    }
 }
