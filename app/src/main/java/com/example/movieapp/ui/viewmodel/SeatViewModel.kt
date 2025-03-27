@@ -10,10 +10,10 @@ import kotlinx.coroutines.flow.update
 class SeatViewModel(private val seatRepository: SeatRepository) : ViewModel() {
 
     private val _seats = MutableStateFlow(seatRepository.getSeats())  // Fetch all seats initially
-    val seats: StateFlow<List<List<Seat>>>  = _seats
+    val seats: StateFlow<List<List<Seat>>> = _seats
 
     private val _selectedSeats = MutableStateFlow<List<Pair<Int, Int>>>(emptyList())
-    val selectedSeats: StateFlow<List<Pair<Int, Int>>>  = _selectedSeats
+    val selectedSeats: StateFlow<List<Pair<Int, Int>>> = _selectedSeats
 
     fun findAndReserveSeats(numPeople: Int) {
         val reservedSeats = seatRepository.findAndReserveSeats(numPeople) // Find seats

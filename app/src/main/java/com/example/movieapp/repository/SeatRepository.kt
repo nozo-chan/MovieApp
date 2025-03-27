@@ -75,7 +75,7 @@ class SeatRepository(private val rows: Int, private val cols: Int, private val d
         try {
             _seats.value = updatedSeats // Update the StateFlow with new seat list
             reserveSeats(selectedSeats) // Reserve the seats in memory
-            CoroutineScope(Dispatchers.IO).launch { reserveSeatsdb(selectedSeats) } // Save reserved seats to DB
+            CoroutineScope(Dispatchers.IO).launch { reserveSeatsDB(selectedSeats) } // Save reserved seats to DB
         } catch (e: IndexOutOfBoundsException) {
             Log.e("ReserveSeats", "Attempted to reserve seats out of bounds", e)
         }
@@ -136,7 +136,7 @@ class SeatRepository(private val rows: Int, private val cols: Int, private val d
     }
 
     // Reserve seats based on row, col positions
-    private suspend fun reserveSeatsdb(seatPositions: List<Pair<Int, Int>>) {
+    private suspend fun reserveSeatsDB(seatPositions: List<Pair<Int, Int>>) {
         seatPositions.forEach { (row, col) ->
             dao.reserveSeat(row, col) // Reserve in DB
         }
