@@ -1,4 +1,4 @@
-package com.example.movieapp
+package com.example.movieapp.ui.component
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -10,11 +10,8 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -22,89 +19,48 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.movieapp.database.Seat
+import com.example.movieapp.ui.viewmodel.SeatViewModel
 
-//@Composable
-//fun SeatGrid(viewModel: SeatViewModel) {
-//    val seats by viewModel.seats.collectAsState()
-//    val selectedSeats by viewModel.selectedSeats.collectAsState()
-//
-//    Spacer(modifier = Modifier.height(50.dp))
-//
-//    Column {
-//        seats.forEachIndexed { rowIndex, row ->
-//            Row(modifier = Modifier.fillMaxWidth()) {
-//                // Row Number on the left side
-//                Text(
-//                    text = "Row ${rowIndex + 1}",
-//                    modifier = Modifier
-//                        .align(Alignment.CenterVertically)
-//                        .padding(end = 8.dp)
-//                )
-//
-//                row.forEachIndexed { colIndex, seat ->
-//                    val isSelected = selectedSeats.contains(Pair(rowIndex, colIndex))
-//                    Box(
-//                        modifier = Modifier
-//                            .size(40.dp)
-//                            .padding(4.dp)
-//                            .background(
-//                                when {
-//                                    seat.isReserved -> Color.Blue // Reserved seats (add a color here)
-//                                    seat.isOccupied -> Color.Gray // Already reserved
-//                                    isSelected -> Color.Green // Selected by user
-//                                    else -> Color.White // Available seat
-//                                }
-//                            )
-//                            .clickable {
-//                                if (!seat.isOccupied && !seat.isReserved) {
-//                                    viewModel.toggleSeatSelection(rowIndex, colIndex)
-//                                }
-//                            },
-//                        contentAlignment = Alignment.Center
-//                    ) {
-//                        Text(
-//                            text = "S${colIndex + 1}",
-//                            style = MaterialTheme.typography.bodySmall
-//                        )
-//                    }
-//                }
-//            }
-//        }
-//}
-
-// Updated SeatGrid to accept a modifier
 @Composable
 fun SeatGrid(
     viewModel: SeatViewModel,
     modifier: Modifier = Modifier
 ) {
-    val seats by viewModel.seats.collectAsState()
-    val selectedSeats by viewModel.selectedSeats.collectAsState()
+    val seats by viewModel.seats.collectAsStateWithLifecycle()
+    val selectedSeats by viewModel.selectedSeats.collectAsStateWithLifecycle()
 
-    LazyColumn(
-        modifier = modifier.fillMaxSize(),
-        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
-    ) {
-        itemsIndexed(seats) { rowIndex, row ->
-            SeatRow(
-                rowIndex = rowIndex,
-                row = row,
-                selectedSeats = selectedSeats,
-                modifier = Modifier.height(50.dp), // Fixed height
-                onSeatClick = { colIndex ->
-                    val seat = row[colIndex]
-                    if (!seat.isOccupied && !seat.isReserved) {
-                        viewModel.toggleSeatSelection(rowIndex, colIndex)
+    Box(Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center) {
+
+
+        LazyColumn(
+            modifier = modifier.fillMaxSize().padding(20.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
+        ) {
+            itemsIndexed(seats) { rowIndex, row ->
+                SeatRow(
+                    rowIndex = rowIndex,
+                    row = row,
+                    selectedSeats = selectedSeats,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 30.dp, max = 40.dp), // Min and max height
+                    onSeatClick = { colIndex ->
+                        val seat = row[colIndex]
+                        if (!seat.isOccupied && !seat.isReserved) {
+                            viewModel.toggleSeatSelection(rowIndex, colIndex)
+                        }
                     }
-                }
-            )
+                )
+            }
         }
     }
 }
@@ -123,20 +79,9 @@ fun SeatRow(
             .then(modifier), // Allows passed-in modifier to override default
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Row Number
-        Text(
-            text = "Row ${rowIndex + 1}",
-            modifier = Modifier
-                .width(50.dp)
-                .padding(end = 8.dp),
-            textAlign = TextAlign.Center
-        )
-
-
         LazyRow(
             modifier = Modifier
-                .weight(1f)
-                .heightIn(min = 40.dp, max = 60.dp), // Min and max height
+                .weight(1f),
             horizontalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             itemsIndexed(row) { colIndex, seat ->
@@ -184,7 +129,6 @@ fun SeatItem(
 
     Box(
         modifier = modifier
-            .size(40.dp)
             .background(
                 color = backgroundColor,
                 shape = RoundedCornerShape(4.dp)
@@ -207,4 +151,3 @@ fun SeatItem(
         )
     }
 }
-

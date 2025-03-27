@@ -1,20 +1,22 @@
-package com.example.movieapp
+package com.example.movieapp.ui.viewmodel
 
+import com.example.movieapp.repository.SeatRepository
 import androidx.lifecycle.ViewModel
+import com.example.movieapp.database.Seat
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
 
-class SeatViewModel(private val useCase: SeatRepository) : ViewModel() {
+class SeatViewModel(private val seatRepository: SeatRepository) : ViewModel() {
 
-    private val _seats = MutableStateFlow(useCase.getSeats())  // Fetch all seats initially
-    val seats: StateFlow<List<List<Seat>>> get() = _seats
+    private val _seats = MutableStateFlow(seatRepository.getSeats())  // Fetch all seats initially
+    val seats: StateFlow<List<List<Seat>>> = _seats
 
     private val _selectedSeats = MutableStateFlow<List<Pair<Int, Int>>>(emptyList())
-    val selectedSeats: StateFlow<List<Pair<Int, Int>>> get() = _selectedSeats
+    val selectedSeats: StateFlow<List<Pair<Int, Int>>> = _selectedSeats
 
     fun findAndReserveSeats(numPeople: Int) {
-        val reservedSeats = useCase.findAndReserveSeats(numPeople) // Find seats
+        val reservedSeats = seatRepository.findAndReserveSeats(numPeople) // Find seats
 
         if (reservedSeats.isNotEmpty()) {
             // Map over the current seats and update the reserved seats
@@ -33,7 +35,7 @@ class SeatViewModel(private val useCase: SeatRepository) : ViewModel() {
     }
 
     fun reserveSelectedSeats() {
-        useCase.reserveUserSelectedSeats(_selectedSeats.value)
+        seatRepository.reserveUserSelectedSeats(_selectedSeats.value)
         _selectedSeats.value = emptyList() // Clear after reserving
         updateSeats() // Refresh seats if needed
     }
@@ -49,15 +51,10 @@ class SeatViewModel(private val useCase: SeatRepository) : ViewModel() {
     }
 
     private fun updateSeats() {
-        _seats.value = useCase.getSeats() // Refresh seat data from repository
+        _seats.value = seatRepository.getSeats() // Refresh seat data from repository
     }
 
     fun clearSelectedSeats() {
-        _selectedSeats.value = emptyList() // Clear all selected seats
-    }
-
-    fun clear(numPeople: Int) {
-        val reservedSeats = useCase.findAndReserveSeats(numPeople) // Find seats
-        if (reservedSeats.isNotEmpty())  _selectedSeats.value = emptyList()
+        _selectedSeats.value = emptyList()
     }
 }
