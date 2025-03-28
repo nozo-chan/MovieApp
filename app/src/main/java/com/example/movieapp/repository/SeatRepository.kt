@@ -10,7 +10,10 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlin.random.Random
 
-class SeatRepository(private val rows: Int, private val cols: Int, private val dao: SeatDao) {
+class SeatRepository(private val seatDatabase: SeatDao) {
+
+    private val rows = 10
+    private val cols = 10
 
     private val _seats = MutableStateFlow(
         List(rows) { row ->
@@ -27,15 +30,21 @@ class SeatRepository(private val rows: Int, private val cols: Int, private val d
     private val seats: StateFlow<List<List<Seat>>> = _seats
 
     init {
+        // Clear the database when the repository is created,
         CoroutineScope(Dispatchers.IO).launch {
             clearDatabase()
         }
     }
 
-    // Function to retrieve the current seats list
+    /**
+     * Retrieves the current seat layout.
+     */
     fun getSeats(): List<List<Seat>> = seats.value
 
-    // Function to reserve a list of seats based on given positions (row, col)
+    /**
+     * Reserves a list of seats based on given positions (row, col).
+     * Updates the in-memory seat list and saves changes to the database.
+     */
     private fun reserveSeats(seatPositions: List<Pair<Int, Int>>) {
         _seats.value = seats.value.map { rowList ->
             rowList.map { seat ->
@@ -44,10 +53,13 @@ class SeatRepository(private val rows: Int, private val cols: Int, private val d
                     ?: seat
             }
         }
-        CoroutineScope(Dispatchers.IO).launch { insertSeats(seats.value)}
+        CoroutineScope(Dispatchers.IO).launch { saveSeats(seats.value) }
     }
 
-    // Main function to find and reserve seats
+    /**
+     * Attempts to find and reserve a specified number of seats.
+     * If no contiguous seats are available, it assigns separate seats.
+     */
     fun findAndReserveSeats(
         numPeople: Int,
         selectedSeats: List<Pair<Int, Int>>? = null
@@ -60,95 +72,114 @@ class SeatRepository(private val rows: Int, private val cols: Int, private val d
             ?: assignSeparateSeats(numPeople)
     }
 
-    // Function to reserve user-selected seats (avoiding indices out of bounds)
+    /**
+     * Reserves user-selected seats and ensures no index out-of-bounds errors.
+     * Updates both in-memory and database storage.
+     */
     fun reserveUserSelectedSeats(selectedSeats: List<Pair<Int, Int>>): List<Pair<Int, Int>> {
-        // Ensure the selected seats are within the bounds of the available seats
         val updatedSeats = seats.value.map { rowSeats ->
             rowSeats.map { seat ->
                 if (selectedSeats.any { it.first == seat.row && it.second == seat.col } && !seat.isOccupied) {
-                    seat.copy(isOccupied = true)  // Mark seat as occupied
+                    seat.copy(isOccupied = true)
                 } else seat
             }
         }
 
-        // Ensure no out-of-bounds errors before updating StateFlow
         try {
-            _seats.value = updatedSeats // Update the StateFlow with new seat list
-            reserveSeats(selectedSeats) // Reserve the seats in memory
-            CoroutineScope(Dispatchers.IO).launch { reserveSeatsDB(selectedSeats) } // Save reserved seats to DB
+            _seats.value = updatedSeats
+            reserveSeats(selectedSeats)
+            CoroutineScope(Dispatchers.IO).launch { reserveSeatsInDatabase(selectedSeats) }
         } catch (e: IndexOutOfBoundsException) {
             Log.e("ReserveSeats", "Attempted to reserve seats out of bounds", e)
         }
 
-        // Ensure the selected seats are valid before filtering
         return selectedSeats.filter { (row, col) ->
-            // Check bounds before accessing
             row in updatedSeats.indices && col in updatedSeats[row].indices && updatedSeats[row][col].isOccupied
         }
     }
 
+    /**
+     * Finds a group of seats for a group booking.
+     */
     private fun findSeatsForGroup(numPeople: Int): List<Pair<Int, Int>> {
         val currentSeats = seats.value
-        currentSeats.forEach { seats ->
-            seats.windowed(numPeople).forEach { window ->
-                if (window.all { !it.isOccupied })
+        currentSeats.forEach { rowSeats ->
+            rowSeats.windowed(numPeople).forEach { window ->
+                if (window.all { !it.isOccupied }) {
                     return window.map { Pair(it.row, it.col) }
+                }
             }
         }
-        return emptyList()  // Return an empty list if no contiguous seats are found
+        return emptyList()
     }
 
-    // Function to assign separate seats when no group seating is available
+    /**
+     * Assigns separate seats when no group seating is available.
+     */
     private fun assignSeparateSeats(numPeople: Int): List<Pair<Int, Int>> {
         val availableSeats = seats.value
             .flatten()
             .filter { !it.isOccupied }
             .take(numPeople)
 
-        if (availableSeats.size < numPeople) return emptyList() // Not enough free seats
+        if (availableSeats.size < numPeople) return emptyList()
 
         val updatedSeats = seats.value.map { rowSeats ->
             rowSeats.map { seat ->
                 if (availableSeats.any { it.row == seat.row && it.col == seat.col }) {
-                    seat.copy(isOccupied = true) // Create new seat objects
+                    seat.copy(isOccupied = true)
                 } else seat
             }
         }
-        _seats.value = updatedSeats // Update StateFlow
+        _seats.value = updatedSeats
 
         return availableSeats.map { it.row to it.col }
     }
 
+    /**
+     * Fetches seats from the database and updates the StateFlow.
+     */
     fun fetchSeats() {
-        val seatsFromDb = dao.getAllSeats().chunked(10)
-        // Fetch from database
+        val seatsFromDb = seatDatabase.getAllSeats().chunked(10)
         _seats.value = seatsFromDb
     }
 
-    suspend fun insertSeats(seats: List<List<Seat>>) {
-        val allSeats = dao.getAllSeats()
-        val flattendSeats = seats.flatten()
+    /**
+     * Saves seats to the database, updating existing entries or inserting new ones.
+     */
+    suspend fun saveSeats(seats: List<List<Seat>>) {
+        val allSeats = seatDatabase.getAllSeats()
+        val flattenedSeats = seats.flatten()
+
         if (allSeats.isNotEmpty()) {
-            updateSeats(flattendSeats)
+            updateSeats(flattenedSeats)
         } else {
-            dao.insertSeats(flattendSeats)
+            seatDatabase.insertSeats(flattenedSeats)
         }
     }
 
-    // Reserve seats based on row, col positions
-    private suspend fun reserveSeatsDB(seatPositions: List<Pair<Int, Int>>) {
+    /**
+     * Reserves seats in the database based on the given positions.
+     */
+    private suspend fun reserveSeatsInDatabase(seatPositions: List<Pair<Int, Int>>) {
         seatPositions.forEach { (row, col) ->
-            dao.reserveSeat(row, col) // Reserve in DB
+            seatDatabase.reserveSeat(row, col)
         }
-        fetchSeats()  // After reserving, fetch the updated seats from DB
+        fetchSeats()
     }
 
-    // Update seats in the database
+    /**
+     * Updates seat statuses in the database and refreshes the StateFlow.
+     */
     suspend fun updateSeats(seats: List<Seat>) {
-        dao.updateSeats(seats) // Update DB with new seat statuses
-        fetchSeats()  // After updating, fetch the updated seats
+        seatDatabase.updateSeats(seats)
+        fetchSeats()
     }
+
+    /**
+     * Clears all seat data from the database.
+     */
     suspend fun clearDatabase() {
-        dao.clearSeats()
+        seatDatabase.clearSeats()
     }
 }

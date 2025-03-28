@@ -53,8 +53,4 @@ class SeatViewModel(private val seatRepository: SeatRepository) : ViewModel() {
     private fun updateSeats() {
         _seats.value = seatRepository.getSeats() // Refresh seat data from repository
     }
-
-    fun clearSelectedSeats() {
-        _selectedSeats.value = emptyList()
-    }
 }
